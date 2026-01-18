@@ -12,6 +12,8 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// 启用主题的特色图片功能（全局）
+add_theme_support('post-thumbnails');
 
 // 网址
 add_action( 'init', 'post_type_sites' );
@@ -46,7 +48,8 @@ function post_type_sites() {
 		'has_archive'        => false,
 		'hierarchical'       => false,
 		'menu_position'      => 10,
-		'supports'           => array( 'title',  'author', 'editor', 'comments', 'custom-fields' )//'editor','excerpt',
+		// 新增 thumbnail 支持特色图片
+		'supports'           => array( 'title',  'author', 'editor', 'comments', 'custom-fields', 'thumbnail' )//'editor','excerpt',
 	);
 
 	register_post_type( 'sites', $args );
@@ -117,7 +120,8 @@ function post_type_bulletin() {
 		'hierarchical'       => false,
 		'menu_position'      => 10,
 		'show_in_rest'       => true,
-		'supports'           => array( 'title', 'editor', 'author', 'comments', 'custom-fields' )
+		// 新增 thumbnail 支持特色图片
+		'supports'           => array( 'title', 'editor', 'author', 'comments', 'custom-fields', 'thumbnail' )
 	);
 
 	register_post_type( 'bulletin', $args );
@@ -218,13 +222,27 @@ function io_work_convert_restrict($query) {
 add_filter('manage_edit-sites_columns', 'io_ordinal_manage_posts_columns');
 add_action('manage_posts_custom_column','io_ordinal_manage_posts_custom_column',10,2);
 function io_ordinal_manage_posts_columns($columns){
-    $columns['link']       = '链接';
-	$columns['ordinal']    = '排序'; 
-	$columns['visible']    = '可见性'; 
-	return $columns;
+    // 新增特色图片列（在link列前）
+    $new_columns = array();
+    foreach ($columns as $key => $value) {
+        if ($key == 'link') {
+            $new_columns['thumbnail'] = '特色图片';
+        }
+        $new_columns[$key] = $value;
+    }
+    return $new_columns;
 }
 function io_ordinal_manage_posts_custom_column($column_name,$id){ 
 	switch( $column_name ) :
+		case 'thumbnail': {
+            // 显示特色图片缩略图
+            if (has_post_thumbnail($id)) {
+                echo get_the_post_thumbnail($id, array(80, 80), array('style' => 'max-width:100%;height:auto;'));
+            } else {
+                echo '无';
+            }
+			break;
+		}
 		case 'link': {
 			echo get_post_meta($id, '_sites_link', true);
 			break;
@@ -268,7 +286,7 @@ function io_id_manage_tags_custom_column($null,$column_name,$id){
 }
 
 /**
- * 文章列表添加自定义字段
+ * 文章列表添加自定义字段样式
  * 
  */
 add_action( 'admin_head', 'io_custom_css' );
@@ -276,7 +294,10 @@ function io_custom_css(){
 	echo '<style>
 		#ordinal{
 			width:80px;
-		} 
+		}
+        #thumbnail{
+            width:100px;
+        } 
 	</style>';
 }
 
@@ -413,4 +434,3 @@ function ashuwp_quick_edit_javascript() {
     </script>";
 	} 
 }
-
